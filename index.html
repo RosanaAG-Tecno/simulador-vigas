@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de vigas · aprendizaje guiado · 2.º Bachillerato</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --text:#17212b; --muted:#667085; --border:#d9dee7;
+  --accent:#245b78; --accent2:#3d7fa3; --danger:#b42318; --ok:#18794e; --warn:#8a5a00;
+  --beam:#5a6573; --force:#c83e3e; --reaction:#2f7d4a; --udl:#d9822b; --violet:#7a5c99;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:1220px;margin:0 auto;padding:20px}
+header{margin-bottom:18px}
+h1{font-size:28px;margin:0 0 6px}
+.subtitle{color:var(--muted);margin:0;line-height:1.45}
+.grid{display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:18px 0 8px}
+label{display:block;font-size:13px;font-weight:700;margin:10px 0 4px}
+input,select,textarea,button{font:inherit}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:#fff}
+textarea{min-height:72px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+button{border:0;border-radius:9px;padding:10px 12px;cursor:pointer;font-weight:700}
+button:disabled{opacity:.45;cursor:not-allowed}
+.btn{background:var(--accent);color:#fff}
+.btn2{background:#eaf1f5;color:var(--accent)}
+.btnDanger{background:#fdecec;color:var(--danger)}
+.btnGhost{background:#f3f4f6;color:#364152}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.loadCard{border:1px solid var(--border);border-radius:10px;padding:10px;margin-top:8px;background:#fbfcfd}
+.loadHead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.small{font-size:12px;color:var(--muted)}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;background:#edf2f7;color:#364152}
+.msg{margin-top:10px;padding:10px;border-radius:8px;font-size:13px;display:none}
+.msg.ok{display:block;background:#e8f5ee;color:var(--ok)}
+.msg.err{display:block;background:#fff0ee;color:var(--danger)}
+.msg.warn{display:block;background:#fff7e8;color:var(--warn)}
+.visual{border:1px solid var(--border);border-radius:12px;padding:10px;background:#fff}
+svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px}
+.step{margin-top:18px;border:1px solid var(--border);border-radius:14px;background:var(--panel);overflow:hidden}
+.stepHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;background:#fbfcfd;border-bottom:1px solid var(--border)}
+.stepHead h2{margin:0}
+.stepBody{padding:16px}
+.stepNum{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#eaf1f5;color:var(--accent);font-weight:800;margin-right:8px}
+
+/* Colores suaves por etapa */
+#step1{border-color:#c9ddea}
+#step1 .stepHead{background:#edf6fb}
+#step1 .stepNum{background:#dcecf5;color:#2f627e}
+
+#step2{border-color:#d8d2ea}
+#step2 .stepHead{background:#f4f1fb}
+#step2 .stepNum{background:#e9e3f6;color:#6b5791}
+
+#step3{border-color:#d8e4cc}
+#step3 .stepHead{background:#f4f8ef}
+#step3 .stepNum{background:#e7f0dc;color:#58723f}
+
+#step4{border-color:#ead8bf}
+#step4 .stepHead{background:#fcf7ef}
+#step4 .stepNum{background:#f4e8d7;color:#8b6432}
+
+#step5{border-color:#e7d2dc}
+#step5 .stepHead{background:#fbf1f5}
+#step5 .stepNum{background:#f4e1e9;color:#8a5369}
+
+#stepScore{border-color:#d7d9e6}
+#stepScore .stepHead{background:#f3f4f9}
+.kicker{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:800}
+.checkline{display:flex;gap:8px;align-items:flex-start;margin:8px 0;font-size:14px}
+.checkline input{width:auto;margin-top:2px}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.metric{border:1px solid var(--border);border-radius:10px;padding:10px;background:#fff}
+.metric b{display:block;font-size:20px;margin-top:4px}
+.tableWrap{overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+.note{padding:10px;background:#fff8e8;border:1px solid #f2d49b;border-radius:8px;color:#6b4d00;font-size:13px;line-height:1.45}
+.info{padding:10px;background:#eef6fb;border:1px solid #c7dce8;border-radius:8px;color:#284b63;font-size:13px;line-height:1.45}
+.scoreBox{display:grid;grid-template-columns:170px 1fr;gap:16px;align-items:center}
+.scoreCircle{width:150px;height:150px;border-radius:50%;border:14px solid #dce6ec;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:auto}
+.scoreCircle strong{font-size:34px}
+.progress{height:10px;background:#e9edf2;border-radius:999px;overflow:hidden}
+.progress>span{display:block;height:100%;background:var(--accent);width:0}
+.question{border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:10px}
+.question p{margin:0 0 8px;font-weight:700}
+.question label{font-weight:400;margin:6px 0}
+.question input[type="radio"]{width:auto;margin-right:6px}
+.resultTag{font-size:12px;font-weight:800;margin-top:6px}
+.resultTag.ok{color:var(--ok)} .resultTag.err{color:var(--danger)}
+.solutionCard{margin-top:12px;background:#fbfcfd;border:1px solid var(--border);border-radius:12px;padding:12px}
+.solutionCard h3{margin-top:0}
+.timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
+.timeline div{padding:8px;border:1px solid var(--border);border-radius:9px;text-align:center;font-size:12px}
+.timeline b{display:block;font-size:13px;margin-bottom:3px}
+.hidden{display:none!important}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:1fr}.row{grid-template-columns:1fr}.timeline{grid-template-columns:1fr}.scoreBox{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Simulador de vigas · aprendizaje guiado</h1>
+    <p class="subtitle">Configura la viga, dibuja mentalmente el DCL, plantea el equilibrio, analiza por tramos y solo después comprueba la solución. El objetivo es entender qué zonas pueden ser críticas para dimensionar la viga con seguridad.</p>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="Configuración de la viga">
+      <div class="kicker">Configuración</div>
+      <h2>Construye tu viga</h2>
+      <label for="L">Longitud total L (m)</label>
+      <input id="L" type="number" min="1" step="0.1" value="10">
+
+      <label for="xB">Posición del apoyo B desde A (m)</label>
+      <input id="xB" type="number" min="0.5" step="0.1" value="8">
+      <div class="small" id="overhangText">Voladizo: 2,00 m</div>
+
+      <h3>Cargas puntuales</h3>
+      <div id="pointLoads"></div>
+      <div class="actions"><button class="btn2" type="button" id="addPoint">+ Fuerza puntual</button></div>
+
+      <h3>Cargas uniformemente repartidas</h3>
+      <div id="udls"></div>
+      <div class="actions"><button class="btn2" type="button" id="addUdl">+ Carga UDL</button></div>
+
+      <div class="actions">
+        <button class="btn" type="button" id="newProblemBtn">Preparar ejercicio</button>
+        <button class="btnDanger" type="button" id="resetBtn">Reiniciar</button>
+      </div>
+      <div id="msg" class="msg"></div>
+
+      <div class="note" style="margin-top:14px">
+        <b>Convención:</b> fuerzas hacia arriba positivas. Para los momentos de equilibrio se adopta giro antihorario positivo. El momento flector positivo representa el comportamiento sagante habitual de una viga biapoyada cargada hacia abajo.
+      </div>
+    </section>
+
+    <section>
+      <div class="panel">
+        <div class="kicker">Enunciado gráfico</div>
+        <h2>Viga propuesta</h2>
+        <div class="visual">
+          <svg id="problemSvg" viewBox="0 0 900 240" role="img" aria-label="Esquema de la viga sin resolver"></svg>
+        </div>
+        <div class="timeline">
+          <div><b>1 · DCL</b>Apoyos, cargas y reacciones</div>
+          <div><b>2 · Equilibrio</b>ΣF = 0 · ΣM = 0</div>
+          <div><b>3 · Tramos</b>Qué cambia en cada sección</div>
+          <div><b>4 · V y M</b>Esfuerzos internos</div>
+          <div><b>5 · Interpretar</b>Zonas críticas y dimensionado</div>
+        </div>
+      </div>
+
+      <div class="step" id="step1">
+        <div class="stepHead"><h2><span class="stepNum">1</span>Dibuja el diagrama de cuerpo libre</h2><span class="badge">1,5 puntos</span></div>
+        <div class="stepBody">
+          <p>Antes de calcular, representa en tu cuaderno la viga sin apoyos físicos y sustitúyelos por sus reacciones. Mantén todas las cargas y dimensiones.</p>
+          <div class="checkline"><input id="dclA" type="checkbox"><label for="dclA">He sustituido el apoyo articulado A por sus reacciones posibles.</label></div>
+          <div class="checkline"><input id="dclB" type="checkbox"><label for="dclB">He sustituido el apoyo móvil B por su reacción vertical.</label></div>
+          <div class="checkline"><input id="dclLoads" type="checkbox"><label for="dclLoads">He representado todas las cargas y sus posiciones o tramos de actuación.</label></div>
+          <div class="actions"><button class="btn2" id="checkDcl" type="button">Comprobar paso 1</button></div>
+          <div id="dclFeedback" class="msg"></div>
+          <div id="dclSolution" class="solutionCard hidden">
+            <h3>DCL de comprobación</h3>
+            <svg id="dclSvg" viewBox="0 0 900 240" aria-label="Diagrama de cuerpo libre de comprobación"></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step2">
+        <div class="stepHead"><h2><span class="stepNum">2</span>Plantea el equilibrio y calcula las reacciones</h2><span class="badge">2,5 puntos</span></div>
+        <div class="stepBody">
+          <p>Escribe las condiciones de equilibrio que has utilizado y calcula las reacciones antes de comprobar.</p>
+          <label for="eqText">Planteamiento</label>
+          <textarea id="eqText" placeholder="Ej.: ΣFy = 0 → ... ; ΣMA = 0 → ..."></textarea>
+          <div class="row">
+            <div><label for="stuRA">R_Ay (kN)</label><input id="stuRA" type="number" step="0.01"></div>
+            <div><label for="stuRB">R_By (kN)</label><input id="stuRB" type="number" step="0.01"></div>
+          </div>
+          <div class="actions"><button class="btn2" id="checkReactions" type="button">Comprobar reacciones</button></div>
+          <div id="reactionFeedback" class="msg"></div>
+        </div>
+      </div>
+
+      <div class="step" id="step3">
+        <div class="stepHead"><h2><span class="stepNum">3</span>Analiza la viga por tramos</h2><span class="badge">2 puntos</span></div>
+        <div class="stepBody">
+          <p>Indica dónde debe cambiar el análisis. Recuerda: cada carga puntual, apoyo, inicio de UDL o final de UDL puede modificar la expresión de los esfuerzos internos.</p>
+          <label for="stuBreaks">Puntos de cambio, en metros desde A</label>
+          <input id="stuBreaks" type="text" placeholder="Ej.: 0, 4, 8, 10">
+          <label for="segmentReason">Explica por qué has elegido esos tramos</label>
+          <textarea id="segmentReason" placeholder="Relaciona cada cambio con una carga, apoyo o cambio de carga distribuida."></textarea>
+          <div class="actions"><button class="btn2" id="checkSegments" type="button">Comprobar tramos</button></div>
+          <div id="segmentFeedback" class="msg"></div>
+
+          <div id="controlInputs" class="hidden">
+            <h3>Valores de control en los puntos clave</h3>
+            <p class="small">Introduce V(x) y M(x) en los puntos indicados. En un salto de cortante se usa el valor inmediatamente después del punto.</p>
+            <div class="tableWrap">
+              <table>
+                <thead><tr><th>x (m)</th><th>Tu V(x) kN</th><th>Tu M(x) kN·m</th></tr></thead>
+                <tbody id="studentControlTable"></tbody>
+              </table>
+            </div>
+            <div class="row">
+              <div><label for="stuMmax">|M| máximo (kN·m)</label><input id="stuMmax" type="number" step="0.01"></div>
+              <div><label for="stuMmaxX">Posición de |M|max desde A (m)</label><input id="stuMmaxX" type="number" step="0.01"></div>
+            </div>
+            <div class="actions"><button class="btn2" id="checkInternal" type="button">Comprobar V, M y máximo</button></div>
+            <div id="internalFeedback" class="msg"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step4">
+        <div class="stepHead"><h2><span class="stepNum">4</span>Comprueba la solución completa</h2><span class="badge">2 puntos</span></div>
+        <div class="stepBody">
+          <p>Cuando hayas terminado tus cálculos, muestra la solución y compárala con tu procedimiento.</p>
+          <div class="actions"><button class="btn" id="showSolutionBtn" type="button">Mostrar solución razonada</button></div>
+          <div id="fullSolution" class="hidden">
+            <div class="metrics">
+              <div class="metric">Reacción A <b id="RA">—</b><span class="small">kN</span></div>
+              <div class="metric">Reacción B <b id="RB">—</b><span class="small">kN</span></div>
+              <div class="metric">|M| máximo <b id="Mmax">—</b><span class="small" id="MmaxPos"></span></div>
+            </div>
+
+            <div class="solutionCard">
+              <h3>Resolución resumida</h3>
+              <div id="solutionText"></div>
+            </div>
+
+            <div class="solutionCard">
+              <h3>Imagen-resumen de la resolución</h3>
+              <svg id="solutionSvg" viewBox="0 0 1000 560" aria-label="Resumen gráfico de la solución"></svg>
+            </div>
+
+            <div class="visual" style="margin-top:12px">
+              <svg id="vSvg" viewBox="0 0 900 280" role="img" aria-label="Diagrama de esfuerzo cortante"></svg>
+            </div>
+            <div class="visual" style="margin-top:12px">
+              <svg id="mSvg" viewBox="0 0 900 280" role="img" aria-label="Diagrama de momento flector"></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step5">
+        <div class="stepHead"><h2><span class="stepNum">5</span>Razona qué significa el resultado</h2><span class="badge">2 puntos</span></div>
+        <div class="stepBody">
+          <div class="info">
+            Los diagramas no son un fin en sí mismos. Permiten localizar zonas donde los esfuerzos internos son mayores y, por tanto, donde el dimensionado, el material y la geometría de la sección requieren especial atención.
+          </div>
+          <div id="questions"></div>
+          <label for="finalReflection">Conclusión personal</label>
+          <textarea id="finalReflection" placeholder="¿Qué zona de esta viga estudiarías con más precaución para evitar una rotura o una deformación excesiva? Justifica tu respuesta."></textarea>
+          <div class="actions"><button class="btn2" id="checkQuestions" type="button">Corregir preguntas</button></div>
+          <div id="questionFeedback" class="msg"></div>
+        </div>
+      </div>
+
+      <div class="step" id="stepScore">
+        <div class="stepHead"><h2>Resultado del proceso</h2><span class="badge">Puntuación orientativa</span></div>
+        <div class="stepBody">
+          <div class="scoreBox">
+            <div class="scoreCircle"><strong id="scoreValue">0,0</strong><span>/ 10</span></div>
+            <div>
+              <div class="progress"><span id="scoreBar"></span></div>
+              <p id="scoreText">Completa los pasos para obtener una puntuación orientativa.</p>
+              <div id="scoreBreakdown" class="small"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const pointLoads = $('pointLoads'), udls = $('udls');
+  let pId=0,uId=0,current=null;
+  const scores={dcl:0,reactions:0,segments:0,internal:0,solution:0,questions:0};
+
+  function num(v){return Number(String(v).replace(',','.'))}
+  function fmt(v,d=2){return Number.isFinite(v)?v.toFixed(d).replace('.',','):'—'}
+  function setMsg(id,type,text){const e=$(id);e.className='msg '+type;e.textContent=text}
+  function close(a,b,t=1e-2){return Math.abs(a-b)<=Math.max(t,Math.abs(b)*0.015)}
+
+  function addPoint(mag=12,pos=4,dir='down'){
+    const el=document.createElement('div'); const id=++pId;
+    el.className='loadCard';
+    el.innerHTML=`<div class="loadHead"><b>Fuerza puntual ${id}</b><button type="button" class="btnDanger del">Eliminar</button></div>
+    <div class="row"><div><label>Valor (kN)</label><input class="pMag" type="number" min="0" step="0.1" value="${mag}"></div>
+    <div><label>Posición x (m)</label><input class="pPos" type="number" min="0" step="0.1" value="${pos}"></div></div>
+    <label>Sentido</label><select class="pDir"><option value="down" ${dir==='down'?'selected':''}>Hacia abajo</option><option value="up" ${dir==='up'?'selected':''}>Hacia arriba</option></select>`;
+    el.querySelector('.del').addEventListener('click',()=>el.remove());
+    pointLoads.appendChild(el);
+  }
+
+  function addUdl(q=4,a=8,b=10,dir='down'){
+    const el=document.createElement('div'); const id=++uId;
+    el.className='loadCard';
+    el.innerHTML=`<div class="loadHead"><b>UDL ${id}</b><button type="button" class="btnDanger del">Eliminar</button></div>
+    <div class="row"><div><label>q (kN/m)</label><input class="uQ" type="number" min="0" step="0.1" value="${q}"></div>
+    <div><label>Inicio (m)</label><input class="uA" type="number" min="0" step="0.1" value="${a}"></div></div>
+    <div class="row"><div><label>Final (m)</label><input class="uB" type="number" min="0" step="0.1" value="${b}"></div>
+    <div><label>Sentido</label><select class="uDir"><option value="down" ${dir==='down'?'selected':''}>Hacia abajo</option><option value="up" ${dir==='up'?'selected':''}>Hacia arriba</option></select></div></div>`;
+    el.querySelector('.del').addEventListener('click',()=>el.remove());
+    udls.appendChild(el);
+  }
+
+  function getState(){
+    return {
+      L:num($('L').value),xB:num($('xB').value),
+      points:[...pointLoads.children].map(c=>({mag:num(c.querySelector('.pMag').value),x:num(c.querySelector('.pPos').value),sign:c.querySelector('.pDir').value==='up'?1:-1})),
+      udls:[...udls.children].map(c=>({q:num(c.querySelector('.uQ').value),a:num(c.querySelector('.uA').value),b:num(c.querySelector('.uB').value),sign:c.querySelector('.uDir').value==='up'?1:-1}))
+    }
+  }
+
+  function validate(s){
+    if(!Number.isFinite(s.L)||s.L<=0)return'La longitud total debe ser mayor que 0.';
+    if(!Number.isFinite(s.xB)||s.xB<=0||s.xB>s.L)return'El apoyo B debe estar entre 0 y L.';
+    for(const p of s.points)if(!Number.isFinite(p.mag)||p.mag<0||!Number.isFinite(p.x)||p.x<0||p.x>s.L)return'Revisa las fuerzas puntuales.';
+    for(const u of s.udls)if(!Number.isFinite(u.q)||u.q<0||!Number.isFinite(u.a)||!Number.isFinite(u.b)||u.a<0||u.b>s.L||u.b<=u.a)return'En cada UDL debe cumplirse 0 ≤ inicio < final ≤ L.';
+    if(!s.points.length&&!s.udls.length)return'Añade al menos una carga.';
+    return'';
+  }
+
+  function solveState(s){
+    let sumF=0,sumMA=0;
+    for(const p of s.points){const F=p.sign*p.mag;sumF+=F;sumMA+=F*p.x}
+    for(const u of s.udls){const W=u.sign*u.q*(u.b-u.a),xc=(u.a+u.b)/2;sumF+=W;sumMA+=W*xc}
+    const RB=-sumMA/s.xB,RA=-sumF-RB;
+    function V(x){
+      let v=RA;
+      if(x>=s.xB-1e-10)v+=RB;
+      for(const p of s.points)if(x>=p.x-1e-10)v+=p.sign*p.mag;
+      for(const u of s.udls){const len=Math.max(0,Math.min(x,u.b)-u.a);if(len>0)v+=u.sign*u.q*len}
+      return v;
+    }
+    function M(x){
+      let m=RA*x;
+      if(x>s.xB)m+=RB*(x-s.xB);
+      for(const p of s.points)if(x>p.x)m+=p.sign*p.mag*(x-p.x);
+      for(const u of s.udls){
+        if(x<=u.a)continue;
+        if(x<u.b){const z=x-u.a;m+=u.sign*u.q*z*z/2}
+        else{const W=u.sign*u.q*(u.b-u.a),xc=(u.a+u.b)/2;m+=W*(x-xc)}
+      }
+      return m;
+    }
+    const breakpoints=[0,s.xB,s.L,...s.points.map(p=>p.x),...s.udls.flatMap(u=>[u.a,u.b])]
+      .filter(x=>x>=0&&x<=s.L).sort((a,b)=>a-b).filter((x,i,a)=>i===0||Math.abs(x-a[i-1])>1e-8);
+    let maxM={x:0,v:M(0)};
+    for(let i=0;i<=4000;i++){const x=s.L*i/4000,m=M(x);if(Math.abs(m)>Math.abs(maxM.v))maxM={x,v:m}}
+    return {RA,RB,V,M,breakpoints,maxM,sumF,sumMA};
+  }
+
+  function svgText(x,y,t,cls=''){return `<text x="${x}" y="${y}" class="${cls}">${t}</text>`}
+  function arrow(x1,y1,x2,y2,color,label){
+    const head=y2>y1?1:-1;
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="3"/>
+    <polygon points="${x2},${y2} ${x2-6},${y2-10*head} ${x2+6},${y2-10*head}" fill="${color}"/>
+    ${label?svgText(x2+7,(y1+y2)/2,label,'lab'):''}`
+  }
+
+  function beamMarkup(s,r,showReactions=false){
+    const W=900,H=240,left=55,right=30,y=125,pw=W-left-right,sx=x=>left+x/s.L*pw;
+    let h=`<style>.lab{font:13px Arial;fill:#17212b}.mut{font:12px Arial;fill:#667085}</style>`;
+    h+=`<line x1="${left}" y1="${y}" x2="${W-right}" y2="${y}" stroke="#5a6573" stroke-width="8" stroke-linecap="round"/>`;
+    h+=`<polygon points="${sx(0)},${y+5} ${sx(0)-15},${y+30} ${sx(0)+15},${y+30}" fill="none" stroke="#17212b" stroke-width="2"/><line x1="${sx(0)-20}" y1="${y+32}" x2="${sx(0)+20}" y2="${y+32}" stroke="#17212b" stroke-width="2"/>`;
+    h+=`<polygon points="${sx(s.xB)},${y+5} ${sx(s.xB)-15},${y+27} ${sx(s.xB)+15},${y+27}" fill="none" stroke="#17212b" stroke-width="2"/><circle cx="${sx(s.xB)-7}" cy="${y+34}" r="5" fill="none" stroke="#17212b" stroke-width="2"/><circle cx="${sx(s.xB)+7}" cy="${y+34}" r="5" fill="none" stroke="#17212b" stroke-width="2"/>`;
+    h+=svgText(sx(0)-4,y+52,'A','lab')+svgText(sx(s.xB)-4,y+52,'B','lab');
+    for(const p of s.points){const x=sx(p.x),down=p.sign<0;h+=arrow(x,down?42:205,x,down?y-6:y+6,'#c83e3e',`${fmt(p.mag,1)} kN`)}
+    for(const u of s.udls){
+      const xa=sx(u.a),xb=sx(u.b),down=u.sign<0;h+=`<line x1="${xa}" y1="${down?58:196}" x2="${xb}" y2="${down?58:196}" stroke="#d9822b" stroke-width="3"/>`;
+      const n=Math.max(3,Math.floor((xb-xa)/55));
+      for(let i=0;i<=n;i++){const x=xa+(xb-xa)*i/n;h+=arrow(x,down?58:196,x,down?y-8:y+8,'#d9822b','')}
+      h+=svgText((xa+xb)/2-22,down?48:220,`q=${fmt(u.q,1)} kN/m`,'lab')
+    }
+    if(showReactions&&r){
+      h+=arrow(sx(0)-18,r.RA>0?205:45,sx(0)-18,r.RA>0?y+8:y-8,'#2f7d4a',`RA=${fmt(r.RA,2)}`);
+      h+=arrow(sx(s.xB)+18,r.RB>0?205:45,sx(s.xB)+18,r.RB>0?y+8:y-8,'#2f7d4a',`RB=${fmt(r.RB,2)}`);
+    }
+    h+=svgText(left,22,s.xB<s.L?`Viga biapoyada con voladizo de ${fmt(s.L-s.xB,2)} m`:'Viga biapoyada','lab');
+    return h;
+  }
+
+  function drawProblem(){if(!current)return;$('problemSvg').innerHTML=beamMarkup(current.s,current.r,false)}
+  function drawDcl(){if(!current)return;$('dclSvg').innerHTML=beamMarkup(current.s,current.r,true)}
+
+  function drawDiagram(svgId,s,r,kind){
+    const svg=$(svgId),W=900,H=280,left=58,right=25,top=28,bottom=42,pw=W-left-right,ph=H-top-bottom;
+    const N=700,xs=[],ys=[];for(let i=0;i<=N;i++){const x=s.L*i/N;xs.push(x);ys.push(kind==='V'?r.V(x):r.M(x))}
+    const maxAbs=Math.max(1,...ys.map(v=>Math.abs(v))),sx=x=>left+x/s.L*pw,sy=y=>top+ph/2-y/maxAbs*(ph*.44);
+    let h=`<style>.t{font:13px Arial;fill:#17212b}.m{font:11px Arial;fill:#667085}</style>`;
+    h+=`<line x1="${left}" y1="${sy(0)}" x2="${W-right}" y2="${sy(0)}" stroke="#aeb7c2" stroke-width="1.5"/>`;
+    for(let i=0;i<=5;i++){const x=s.L*i/5;h+=`<line x1="${sx(x)}" y1="${top}" x2="${sx(x)}" y2="${H-bottom}" stroke="#edf0f4" stroke-width="1"/>`;h+=svgText(sx(x)-9,H-16,fmt(x,1),'m')}
+    h+=svgText(8,18,kind==='V'?'Esfuerzo cortante V(x) [kN]':'Momento flector M(x) [kN·m]','t');
+    let d=`M ${sx(xs[0])} ${sy(ys[0])}`;for(let i=1;i<xs.length;i++)d+=` L ${sx(xs[i])} ${sy(ys[i])}`;
+    h+=`<path d="${d}" fill="none" stroke="${kind==='V'?'#3b7f6b':'#7a5c99'}" stroke-width="3"/>`;svg.innerHTML=h;
+  }
+
+  function buildControlInputs(){
+    const {s,r}=current; $('studentControlTable').innerHTML=r.breakpoints.map((x,i)=>
+      `<tr><td>${fmt(x,2)}</td><td><input data-i="${i}" class="sv" type="number" step="0.01"></td><td><input data-i="${i}" class="sm" type="number" step="0.01"></td></tr>`).join('');
+    $('controlInputs').classList.remove('hidden');
+  }
+
+  function parseBreaks(text){
+    return text.split(/[;, ]+/).map(num).filter(Number.isFinite).sort((a,b)=>a-b);
+  }
+
+  function makeQuestions(){
+    const {s,r}=current; const qs=[];
+    if(s.points.length){
+      qs.push({q:'¿Qué efecto produce una carga puntual sobre el diagrama de cortante?',opts:['Un salto','Una parábola','Ningún cambio'],ans:0});
+    }
+    if(s.udls.length){
+      qs.push({q:'Bajo una carga uniformemente repartida constante, ¿qué forma tiene M(x)?',opts:['Constante','Lineal','Parabólica'],ans:2});
+    }
+    if(s.xB<s.L){
+      qs.push({q:'En una viga biapoyada con voladizo, ¿puede existir momento flector interno en la sección del apoyo B?',opts:['Sí','No, siempre es cero','Solo si no hay cargas'],ans:0});
+    }
+    if(r.RA<0||r.RB<0){
+      qs.push({q:'Una reacción negativa significa que…',opts:['El cálculo es necesariamente incorrecto','La reacción real actúa en sentido contrario al supuesto','La viga no está en equilibrio'],ans:1});
+    }
+    qs.push({q:'¿Por qué interesa localizar el máximo momento flector?',opts:['Porque señala una zona potencialmente crítica frente a flexión','Porque siempre coincide con un apoyo','Porque permite ignorar el cortante'],ans:0});
+    qs.push({q:'Si aumenta la carga y mantenemos material y sección, en general…',opts:['Disminuyen los esfuerzos internos','Aumentan los esfuerzos internos y puede ser necesario redimensionar','No cambia nada'],ans:1});
+    return qs.slice(0,4);
+  }
+
+  function renderQuestions(){
+    const qs=makeQuestions();
+    $('questions').innerHTML=qs.map((q,i)=>`<div class="question" data-q="${i}"><p>${i+1}. ${q.q}</p>${q.opts.map((o,j)=>`<label><input type="radio" name="q${i}" value="${j}"> ${o}</label>`).join('')}<div class="resultTag"></div></div>`).join('');
+    current.questions=qs;
+  }
+
+  function buildSolutionText(){
+    const {s,r}=current;
+    const totalLoads=s.points.reduce((a,p)=>a+p.sign*p.mag,0)+s.udls.reduce((a,u)=>a+u.sign*u.q*(u.b-u.a),0);
+    let html=`<p><b>1. DCL:</b> sustituir A por sus reacciones posibles y B por su reacción vertical; mantener todas las cargas.</p>`;
+    html+=`<p><b>2. Equilibrio:</b> ΣFy = 0 y ΣMA = 0. La suma algebraica de las cargas es ${fmt(totalLoads,2)} kN. Resultan <b>R_A = ${fmt(r.RA,2)} kN</b> y <b>R_B = ${fmt(r.RB,2)} kN</b>.</p>`;
+    html+=`<p><b>3. Tramos:</b> puntos de cambio en x = ${r.breakpoints.map(x=>fmt(x,2)).join(' · ')} m.</p>`;
+    html+=`<p><b>4. Esfuerzos internos:</b> V(x) cambia con fuerzas y cargas distribuidas; M(x) se obtiene a partir del equilibrio de cada sección y debe ser coherente con V(x).</p>`;
+    html+=`<p><b>5. Zona crítica:</b> el mayor valor absoluto de momento es aproximadamente <b>${fmt(Math.abs(r.maxM.v),2)} kN·m</b> en <b>x ≈ ${fmt(r.maxM.x,2)} m</b>. Esa zona merece especial atención frente a flexión.</p>`;
+    $('solutionText').innerHTML=html;
+  }
+
+  function drawSolutionSummary(){
+    const {s,r}=current,svg=$('solutionSvg');
+    const bp=r.breakpoints;
+    let h=`<style>.ttl{font:bold 20px Arial;fill:#17212b}.sub{font:bold 15px Arial;fill:#245b78}.txt{font:13px Arial;fill:#17212b}.mut{font:12px Arial;fill:#667085}</style>`;
+    h+=svgText(25,35,'Resolución de la viga','ttl');
+    h+=svgText(25,70,'1 · DCL','sub');
+    h+=svgText(25,95,'Apoyos → reacciones · cargas puntuales y UDL conservan posición y sentido.','txt');
+    h+=svgText(25,135,'2 · Equilibrio','sub');
+    h+=svgText(25,160,`ΣFy = 0  →  RA + RB + cargas = 0`,'txt');
+    h+=svgText(25,185,`ΣMA = 0  →  RB·${fmt(s.xB,2)} + momentos de las cargas = 0`,'txt');
+    h+=svgText(25,210,`RA = ${fmt(r.RA,2)} kN     RB = ${fmt(r.RB,2)} kN`,'txt');
+    h+=svgText(25,250,'3 · División por tramos','sub');
+    h+=svgText(25,275,`Puntos de cambio: ${bp.map(x=>fmt(x,2)).join(' · ')} m`,'txt');
+    h+=svgText(25,315,'4 · Esfuerzos internos','sub');
+    h+=svgText(25,340,'Carga puntual → salto en V · UDL → V lineal · V constante → M lineal · UDL → M parabólico','txt');
+    h+=svgText(25,380,'5 · Interpretación para dimensionar','sub');
+    h+=svgText(25,405,`|M|max ≈ ${fmt(Math.abs(r.maxM.v),2)} kN·m en x ≈ ${fmt(r.maxM.x,2)} m`,'txt');
+    h+=svgText(25,430,'Mayor momento → mayor exigencia frente a flexión.','txt');
+    h+=svgText(25,455,'El dimensionado debe comprobar también cortante, tensiones, deformaciones, material y geometría de la sección.','txt');
+    h+=`<rect x="20" y="485" width="960" height="50" rx="10" fill="#eef6fb" stroke="#c7dce8"/>`;
+    h+=svgText(40,516,'CARGAS  →  REACCIONES  →  V(x) y M(x)  →  ZONAS CRÍTICAS  →  DIMENSIONADO','sub');
+    svg.innerHTML=h;
+  }
+
+  function updateScore(){
+    const total=Object.values(scores).reduce((a,b)=>a+b,0);
+    $('scoreValue').textContent=fmt(total,1);
+    $('scoreBar').style.width=Math.min(100,total*10)+'%';
+    $('scoreText').textContent=total>=8?'Proceso muy sólido: cálculo e interpretación bien integrados.':total>=5?'Proceso suficiente, pero revisa los pasos con menor puntuación.':'Conviene revisar el procedimiento antes de dar el ejercicio por terminado.';
+    $('scoreBreakdown').innerHTML=`DCL ${fmt(scores.dcl,1)}/1,5 · Reacciones ${fmt(scores.reactions,1)}/2,5 · Tramos ${fmt(scores.segments,1)}/1 · V/M ${fmt(scores.internal,1)}/1 · Solución/comprobación ${fmt(scores.solution,1)}/2 · Razonamiento ${fmt(scores.questions,1)}/2`;
+  }
+
+  function prepareProblem(){
+    const s=getState(),err=validate(s); if(err){setMsg('msg','err',err);return}
+    const r=solveState(s); current={s,r,questions:[]};
+    $('overhangText').textContent=s.xB<s.L?`Voladizo: ${fmt(s.L-s.xB,2)} m`:'Sin voladizo';
+    setMsg('msg','ok','Ejercicio preparado. Resuélvelo siguiendo los cinco pasos.');
+    drawProblem(); renderQuestions();
+    ['dclA','dclB','dclLoads'].forEach(id=>$(id).checked=false);
+    ['eqText','stuRA','stuRB','stuBreaks','segmentReason','stuMmax','stuMmaxX','finalReflection'].forEach(id=>$(id).value='');
+    ['dclSolution','controlInputs','fullSolution'].forEach(id=>$(id).classList.add('hidden'));
+    ['dclFeedback','reactionFeedback','segmentFeedback','internalFeedback','questionFeedback'].forEach(id=>{$(id).className='msg';$(id).textContent=''});
+    Object.keys(scores).forEach(k=>scores[k]=0); updateScore();
+  }
+
+  $('checkDcl').addEventListener('click',()=>{
+    if(!current)return;
+    const c=['dclA','dclB','dclLoads'].filter(id=>$(id).checked).length;
+    scores.dcl=0.5*c;
+    if(c===3){setMsg('dclFeedback','ok','DCL completo. Comprueba ahora la representación correcta.');$('dclSolution').classList.remove('hidden');drawDcl()}
+    else setMsg('dclFeedback','warn','Revisa el DCL antes de continuar: deben aparecer apoyos sustituidos por reacciones y todas las cargas.');
+    updateScore();
+  });
+
+  $('checkReactions').addEventListener('click',()=>{
+    if(!current)return; const ra=num($('stuRA').value),rb=num($('stuRB').value),text=$('eqText').value.trim();
+    let sc=0; if(text.length>=12)sc+=0.5; if(close(ra,current.r.RA,.05))sc+=1; if(close(rb,current.r.RB,.05))sc+=1; scores.reactions=sc;
+    if(sc>=2.5)setMsg('reactionFeedback','ok','Reacciones correctas y planteamiento registrado.');
+    else setMsg('reactionFeedback','warn',`Revisa el equilibrio. Pista: usa ΣFy = 0 y un sumatorio de momentos respecto a A o B. Tu puntuación provisional en este paso es ${fmt(sc,1)}/2,5.`);
+    updateScore();
+  });
+
+  $('checkSegments').addEventListener('click',()=>{
+    if(!current)return; const a=parseBreaks($('stuBreaks').value),b=current.r.breakpoints;
+    const same=a.length===b.length&&a.every((v,i)=>close(v,b[i],.03));
+    const reason=$('segmentReason').value.trim().length>=15;
+    scores.segments=(same?.7:0)+(reason?.3:0);
+    if(same){setMsg('segmentFeedback','ok','Tramos correctamente identificados. Ahora introduce valores de control de V y M.');buildControlInputs()}
+    else setMsg('segmentFeedback','warn','Algún punto de cambio falta o sobra. Revisa apoyos, fuerzas puntuales e inicio/final de cada UDL.');
+    updateScore();
+  });
+
+  $('checkInternal').addEventListener('click',()=>{
+    if(!current)return;
+    const vs=[...document.querySelectorAll('.sv')],ms=[...document.querySelectorAll('.sm')]; let ok=0,total=vs.length*2+2;
+    vs.forEach((e,i)=>{if(close(num(e.value),current.r.V(current.r.breakpoints[i]),.08))ok++});
+    ms.forEach((e,i)=>{if(close(num(e.value),current.r.M(current.r.breakpoints[i]),.08))ok++});
+    if(close(num($('stuMmax').value),Math.abs(current.r.maxM.v),.12))ok++;
+    if(close(num($('stuMmaxX').value),current.r.maxM.x,.08))ok++;
+    scores.internal=ok/total;
+    if(ok===total)setMsg('internalFeedback','ok','Valores de V, M y momento máximo correctos.');
+    else setMsg('internalFeedback','warn',`Has acertado ${ok} de ${total} valores de control. Revisa saltos, signos y la relación entre V y M.`);
+    updateScore();
+  });
+
+  $('showSolutionBtn').addEventListener('click',()=>{
+    if(!current)return;$('fullSolution').classList.remove('hidden');scores.solution=2;
+    $('RA').textContent=fmt(current.r.RA,2);$('RB').textContent=fmt(current.r.RB,2);
+    $('Mmax').textContent=fmt(Math.abs(current.r.maxM.v),2);$('MmaxPos').textContent=`kN·m · x ≈ ${fmt(current.r.maxM.x,2)} m`;
+    buildSolutionText();drawSolutionSummary();drawDiagram('vSvg',current.s,current.r,'V');drawDiagram('mSvg',current.s,current.r,'M');updateScore();
+  });
+
+  $('checkQuestions').addEventListener('click',()=>{
+    if(!current)return;let correct=0;
+    current.questions.forEach((q,i)=>{
+      const box=document.querySelector(`.question[data-q="${i}"]`),sel=box.querySelector('input:checked'),tag=box.querySelector('.resultTag');
+      if(sel&&Number(sel.value)===q.ans){correct++;tag.className='resultTag ok';tag.textContent='Correcto'}
+      else{tag.className='resultTag err';tag.textContent='Revisa esta idea'}
+    });
+    const mc=current.questions.length?1.6*correct/current.questions.length:0;
+    const refl=$('finalReflection').value.trim().length>=40?0.4:0;
+    scores.questions=mc+refl;
+    setMsg('questionFeedback',correct===current.questions.length&&refl?'ok':'warn',`Preguntas correctas: ${correct}/${current.questions.length}. La conclusión razonada aporta hasta 0,4 puntos.`);
+    updateScore();
+  });
+
+  $('addPoint').addEventListener('click',()=>addPoint(10,Math.min(num($('L').value)*.4,num($('L').value)),'down'));
+  $('addUdl').addEventListener('click',()=>{const L=num($('L').value);addUdl(4,Math.max(0,L*.6),L,'down')});
+  $('newProblemBtn').addEventListener('click',prepareProblem);
+  $('resetBtn').addEventListener('click',()=>{
+    $('L').value=10;$('xB').value=8;pointLoads.innerHTML='';udls.innerHTML='';pId=0;uId=0;
+    addPoint(12,4,'down');addUdl(4,8,10,'down');prepareProblem();
+  });
+
+  addPoint(12,4,'down');addUdl(4,8,10,'down');prepareProblem();
+})();
+</script>
+</body>
+</html>
